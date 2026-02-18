@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Трекер Тренування</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #999999;
+            --tg-theme-link-color: #2481cc;
+            --tg-theme-button-color: #2481cc;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f4f4f5;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            overflow-x: hidden;
+            padding: 0;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 16px 20px;
+            background: var(--tg-theme-secondary-bg-color);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .day-label {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+            margin-top: 4px;
+        }
+
+        .swiper {
+            flex: 1;
+            width: 100%;
+            padding: 20px 0 80px 0;
+        }
+
+        .swiper-slide {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .exercise-card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .exercise-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-align: center;
+            color: var(--tg-theme-text-color);
+        }
+
+        .plan-section {
+            background: var(--tg-theme-bg-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .plan-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .plan-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .plan-label {
+            color: var(--tg-theme-hint-color);
+            font-weight: 500;
+        }
+
+        .plan-value {
+            font-weight: 600;
+            color: var(--tg-theme-text-color);
+        }
+
+        .sets-counter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 24px 0;
+        }
+
+        .counter-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border: none;
+            font-size: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, opacity 0.2s;
+            box-shadow: 0 2px 8px rgba(36, 129, 204, 0.3);
+        }
+
+        .counter-btn:active {
+            transform: scale(0.95);
+        }
+
+        .counter-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .counter-display {
+            font-size: 28px;
+            font-weight: 700;
+            min-width: 80px;
+            text-align: center;
+            color: var(--tg-theme-text-color);
+        }
+
+        .counter-display.completed {
+            color: #4caf50;
+        }
+
+        .edit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 12px;
+        }
+
+        .edit-btn:active {
+            opacity: 0.8;
+        }
+
+        .edit-form {
+            display: none;
+            background: var(--tg-theme-bg-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .edit-form.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--tg-theme-text-color);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color);
+        }
+
+        .form-actions {
+            display: flex;
+            flex-direction: column; /* Кнопки одна під одною для центрування */
+            gap: 10px;
+            margin-top: 14px;
+            align-items: center; /* Центрування по горизонталі */
+        }
+
+        .btn-save {
+            width: 100%; /* Кнопка на всю ширину - це і є центр для мобільних */
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #28a745 !important; /* Насичений зелений колір */
+            color: white !important;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: transparent; /* Робимо кнопку "Скасувати" непомітною під основною */
+            color: var(--tg-theme-hint-color);
+            border: none;
+            font-size: 14px;
+            text-decoration: underline;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        .swiper-pagination {
+            bottom: 60px !important;
+        }
+
+        .swiper-pagination-bullet {
+            background: var(--tg-theme-button-color);
+            opacity: 0.3;
+        }
+
+        .swiper-pagination-bullet-active {
+            opacity: 1;
+        }
+
+        .exercise-note {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+            font-style: italic;
+            text-align: center;
+            margin-top: 10px;
+            padding: 8px;
+            background: var(--tg-theme-bg-color);
+            border-radius: 8px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 18px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .error {
+            padding: 20px;
+            text-align: center;
+            color: #f44336;
+        }
+        .finish-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .finish-btn:active {
+            transform: scale(0.97);
+        }
+
+        .finish-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--tg-theme-bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeInOverlay 0.4s ease;
+        }
+
+        .finish-overlay .emoji {
+            font-size: 80px;
+            animation: bounceIn 0.6s ease;
+        }
+
+        .finish-overlay h2 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-top: 20px;
+            color: var(--tg-theme-text-color);
+            animation: fadeUp 0.5s ease 0.3s both;
+        }
+
+        .finish-overlay p {
+            font-size: 15px;
+            color: var(--tg-theme-hint-color);
+            margin-top: 8px;
+            animation: fadeUp 0.5s ease 0.5s both;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="loading">⏳ Завантаження...</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <script>
+        // 🚨 ПОКАЗУЄМО ЩО ПРИЙШЛО
+        var rawData = '<?= exercisesJSON ?>';
+        document.getElementById('app').innerHTML = '<div style="padding:20px;font-size:12px;word-break:break-all"><b>RAW DATA:</b><br>' + rawData.substring(0, 500) + '</div>';
+        
+        // 🔥 ОТРИМУЄМО ДАНІ З СЕРВЕРА
+        var serverData = null;
+        try {
+            serverData = JSON.parse(rawData);
+        } catch(e) {
+            document.getElementById('app').innerHTML += '<br><br><b style="color:red">PARSE ERROR:</b> ' + e.toString();
+            serverData = { error: e.toString() };
+        }
+      
+        
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Застосовуємо тему
+        document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
+        document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#999999');
+        document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#2481cc');
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f4f4f5');
+
+        // Змінні для збереження
+        let exercises = [];
+        let hasChanges = false;
+
+        // Ініціалізація
+        function init() {
+            if (serverData.error) {
+                document.getElementById('app').innerHTML = '<div class="error">❌ Помилка: ' + serverData.error + '</div>';
+                return;
+            }
+
+            exercises = serverData.exercises || [];
+            
+            if (exercises.length === 0) {
+                document.getElementById('app').innerHTML = '<div class="error">⚠️ Немає вправ для відображення</div>';
+                return;
+            }
+
+            renderUI();
+            initSwiper();
+            setupMainButton();
+        }
+
+        function renderUI() {
+            let html = `
+                <div class="header">
+                    <h1>🏋️‍♂️ Трекер Тренування</h1>
+                    <div class="day-label">${serverData.day || 'День тренування'}</div>
+                </div>
+                <div class="swiper">
+                    <div class="swiper-wrapper">
+            `;
+
+            exercises.forEach((ex, index) => {
+    ex.currentSets = 0;
+    ex.changed = false;
+    
+    html += `
+        <div class="swiper-slide">
+            <div class="exercise-card" data-index="${index}">
+                <div class="exercise-name">${ex.name}</div>
+                
+                <div class="plan-section">
+                    ${ex.weight ? `
+                        <div class="plan-row">
+                            <span class="plan-label">
+                                ${ex.hasPercent 
+                                    ? (ex.isRun ? 'Інтенсивність:' : '1RM:') 
+                                    : (ex.isRun ? 'Параметр:' : 'Вага:')}
+                            </span>
+                            <span class="plan-value">${ex.weight}</span>
+                        </div>` : ''}
+                    
+                    ${ex.sets ? `
+                        <div class="plan-row">
+                            <span class="plan-label">${ex.isRun ? 'Серії:' : 'Підходи:'}</span>
+                            <span class="plan-value">${ex.sets}</span>
+                        </div>` : ''}
+
+                    ${ex.reps ? `
+                        <div class="plan-row">
+                            <span class="plan-label">${ex.isRun ? 'Дистанція/Повтори:' : 'Повтори:'}</span>
+                            <span class="plan-value">${ex.reps}</span>
+                        </div>` : ''}
+                    
+                    ${ex.time ? `
+                        <div class="plan-row">
+                            <span class="plan-label">${ex.isRun ? 'Відпочинок:' : 'Час:'}</span>
+                            <span class="plan-value">${ex.time}</span>
+                        </div>` : ''}
+                </div>
+
+                ${ex.sets ? `
+                <div class="sets-counter">
+                    <button class="counter-btn" onclick="decrementSets(${index})">−</button>
+                    <div class="counter-display" id="counter-${index}">0/${ex.sets.replace(/[^\d]/g, '')}</div>
+                    <button class="counter-btn" onclick="incrementSets(${index})">+</button>
+                </div>
+                ` : ''}
+
+                <button class="edit-btn" onclick="toggleEditForm(${index})">✏️ Внести зміни</button>
+                ${index === exercises.length - 1 ? '<button class="finish-btn" onclick="finishTraining()">🏁 Закінчити тренування</button>' : ''}
+
+                <div class="edit-form" id="form-${index}">
+                    ${ex.weight ? `
+                    <div class="form-group">
+                        <label class="form-label">
+                            ${ex.hasPercent 
+                                ? (ex.isRun ? '⏱ Інтенсивність (темп/зусилля):' : '🏋️‍♂️ Вага для 1RM (кг):') 
+                                : (ex.isRun ? '⏱ Час / Дистанція:' : '🏋️‍♂️ Вага (кг):')}
+                        </label>
+                        <input type="text" class="form-input" id="input-weight-${index}" 
+                               value="${ex.isRun ? ex.weight : ex.weight.replace(/[^\d.]/g, '')}" 
+                               placeholder="${ex.weight}">
+                    </div>` : ''}
+
+                    ${ex.sets ? `
+                    <div class="form-group">
+                        <label class="form-label">${ex.isRun ? 'Серії:' : 'Підходи:'}</label>
+                        <input type="number" class="form-input" id="input-sets-${index}" 
+                               value="${ex.sets.replace(/[^\d]/g, '')}">
+                    </div>` : ''}
+
+                    ${ex.reps ? `
+                    <div class="form-group">
+                        <label class="form-label">${ex.isRun ? 'Дистанція/Повтори:' : 'Повтори:'}</label>
+                        <input type="text" class="form-input" id="input-reps-${index}" 
+                               value="${ex.reps}">
+                    </div>` : ''}
+
+                    <button class="btn-save" onclick="saveExercise(${index})">ЗБЕРЕГТИ</button>
+                </div>
+            </div>
+        </div>
+    `;
+});
+
+            html += `
+                    </div>
+                    <div class="swiper-pagination"></div>
+                </div>
+            `;
+
+            document.getElementById('app').innerHTML = html;
+        }
+        function initSwiper() {
+            new Swiper('.swiper', {
+                slidesPerView: 1,
+                spaceBetween: 20,
+                centeredSlides: true,
+                pagination: {
+                    el: '.swiper-pagination',
+                    clickable: true,
+                },
+                on: {
+                    slideChange: function() {
+                        document.querySelectorAll('.edit-form').forEach(form => {
+                            form.classList.remove('active');
+                        });
+                    }
+                }
+            });
+        }
+
+        function incrementSets(index) {
+            const ex = exercises[index];
+            const maxSets = parseInt(ex.sets) || 0;
+            
+            if (ex.currentSets < maxSets) {
+                ex.currentSets++;
+                updateCounterDisplay(index);
+                tg.HapticFeedback.impactOccurred('light');
+                
+                if (ex.currentSets === maxSets) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+            }
+        }
+
+        function decrementSets(index) {
+            const ex = exercises[index];
+            if (ex.currentSets > 0) {
+                ex.currentSets--;
+                updateCounterDisplay(index);
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+
+        function updateCounterDisplay(index) {
+            const ex = exercises[index];
+            const display = document.getElementById('counter-' + index);
+            const maxSets = parseInt(ex.sets) || 0;
+            
+            if (ex.currentSets === maxSets && maxSets > 0) {
+                display.textContent = '✅ ' + maxSets;
+                display.classList.add('completed');
+            } else {
+                display.textContent = ex.currentSets + '/' + maxSets;
+                display.classList.remove('completed');
+            }
+        }
+
+        function toggleEditForm(index) {
+            const form = document.getElementById('form-' + index);
+            const btn = form.previousElementSibling;
+            
+            form.classList.toggle('active');
+            
+            if (form.classList.contains('active')) {
+                btn.textContent = '🔼 Згорнути';
+            } else {
+                btn.textContent = '✏️ Внести зміни';
+            }
+        }
+
+        function saveExercise(index) {
+    const ex = exercises[index];
+    
+    const weightInput = document.getElementById('input-weight-' + index);
+    const setsInput = document.getElementById('input-sets-' + index);
+    const repsInput = document.getElementById('input-reps-' + index);
+    const timeInput = document.getElementById('input-time-' + index);
+    
+    if (weightInput) ex.weight = weightInput.value;
+    if (setsInput) ex.sets = setsInput.value;
+    if (repsInput) ex.reps = repsInput.value;
+    if (timeInput) ex.time = timeInput.value;
+    
+    // Формуємо рядок результату (напр. "85 4 10")
+    var resultText = ex.weight + " " + ex.sets + " " + ex.reps;
+    
+    // Візуальний відгук
+    const saveBtn = document.querySelector(`[data-index="${index}"] .btn-save`);
+    if (saveBtn) saveBtn.innerText = "⏳ Збереження...";
+
+    // 🔥 ЗАМІСТЬ fetch ВИКОРИСТОВУЄМО google.script.run
+    google.script.run
+        .withSuccessHandler(function(response) {
+            if (saveBtn) saveBtn.innerText = "✅ Збережено";
+            tg.HapticFeedback.notificationOccurred('success');
+            setTimeout(() => { 
+                if (saveBtn) saveBtn.innerText = "💾 Зберегти";
+                toggleEditForm(index); 
+            }, 1000);
+        })
+        .withFailureHandler(function(error) {
+            tg.showAlert('❌ Помилка: ' + error);
+        })
+        .writeExerciseResult(serverData.sheetName, ex.row, resultText);
+}
+function finishTraining() {
+            tg.HapticFeedback.notificationOccurred('success');
+
+            var btn = document.querySelector('.finish-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Зберігаю...'; }
+
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    var remainText = '';
+                    if (res && res.total > 0) {
+                        remainText = '<p style="margin-top:12px;font-size:15px;color:var(--tg-theme-hint-color);">📋 Залишилось тренувань: <b>' + res.remaining + ' з ' + res.total + '</b></p>';
+                    }
+
+                    document.getElementById('app').innerHTML =
+                        '<div class="finish-overlay">' +
+                            '<div class="emoji">🎉</div>' +
+                            '<h2>Тренування завершено!</h2>' +
+                            '<p>Чудова робота, так тримати 💪</p>' +
+                            remainText +
+                        '</div>';
+
+                    setTimeout(function() { tg.close(); }, 2500);
+                })
+                .withFailureHandler(function(err) {
+                    document.getElementById('app').innerHTML =
+                        '<div class="finish-overlay">' +
+                            '<div class="emoji">🎉</div>' +
+                            '<h2>Тренування завершено!</h2>' +
+                            '<p>Чудова робота, так тримати 💪</p>' +
+                        '</div>';
+                    setTimeout(function() { tg.close(); }, 2500);
+                })
+                .logFinishedTraining(
+                    serverData.chatId || 'UNKNOWN',
+                    serverData.userName || 'User',
+                    serverData.day || '',
+                    serverData.sheetName || ''
+                );
+        }
+        function setupMainButton() {
+            tg.MainButton.text = "Зберегти все";
+            tg.MainButton.color = tg.themeParams.button_color || "#2481cc";
+            tg.MainButton.textColor = tg.themeParams.button_text_color || "#ffffff";
+            tg.MainButton.show();
+            
+            tg.MainButton.onClick(function() {
+                sendDataToBot();
+            });
+        }
+
+        function updateMainButton() {
+            const changedCount = exercises.filter(ex => ex.changed).length;
+            if (changedCount > 0) {
+                tg.MainButton.text = "Зберегти все (" + changedCount + ")";
+            } else {
+                tg.MainButton.text = "Зберегти все";
+            }
+        }
+
+        
+        
+        function sendDataToBot() {
+            const dataToSend = {
+                action: "save_tracker",
+                sheetName: serverData.sheetName,
+                exercises: exercises.map(ex => ({
+                    row: ex.row,
+                    name: ex.name,
+                    weight: ex.weight,
+                    sets: ex.sets,
+                    reps: ex.reps,
+                    time: ex.time,
+                    changed: ex.changed
+                }))
+            };
+
+            tg.sendData(JSON.stringify(dataToSend));
+        }
+
+        // Запуск
+        // 🔥 АВТОЗБЕРЕЖЕННЯ ПРИ ЗАКРИТТІ
+        window.addEventListener('beforeunload', function() {
+            if (hasChanges) {
+                sendDataToBot();
+            }
+        });
+        
+        // 🔥 TELEGRAM WEB APP: відправка даних при закритті
+        tg.onEvent('mainButtonClicked', function() {
+            sendDataToBot();
+        });
+        
+        // 🔥 Якщо користувач закриває Web App без збереження
+        tg.enableClosingConfirmation(); // Попередження перед закриттям
+        
+        // Запуск
+        // 🔥 АВТОЗБЕРЕЖЕННЯ ПРИ ЗАКРИТТІ
+        window.addEventListener('beforeunload', function() {
+            if (hasChanges) {
+                sendDataToBot();
+            }
+        });
+        
+        // 🔥 TELEGRAM WEB APP: відправка даних при закритті
+        tg.onEvent('mainButtonClicked', function() {
+            sendDataToBot();
+        });
+        
+        // 🔥 Якщо користувач закриває Web App без збереження
+        tg.enableClosingConfirmation(); // Попередження перед закриттям
+        
+        // Запуск
+        init();
+    </script>
+</body>
+</html>

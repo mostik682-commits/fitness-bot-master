@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Заміри тіла</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f2f2f6;
+      --card-bg: #ffffff;
+      --text-color: #000000;
+      --hint-color: #8e8e93;
+      --accent-color: #007aff;
+      --button-text: #ffffff;
+    }
+
+    body.tg-theme {
+      --bg-color: var(--tg-theme-secondary-bg-color, #f2f2f6);
+      --card-bg: var(--tg-theme-bg-color, #ffffff);
+      --text-color: var(--tg-theme-text-color, #000000);
+      --hint-color: var(--tg-theme-hint-color, #8e8e93);
+      --accent-color: var(--tg-theme-button-color, #007aff);
+      --button-text: var(--tg-theme-button-text-color, #ffffff);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px 16px 100px 16px;
+    }
+
+    header { margin-bottom: 24px; text-align: center; }
+    h1 { font-size: 24px; font-weight: 800; margin: 0 0 4px 0; }
+    p.subtitle { margin: 0; color: var(--hint-color); font-size: 14px; font-weight: 500; }
+
+    .grid { display: flex; flex-direction: column; gap: 12px; }
+
+    .input-card {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .label { font-size: 15px; font-weight: 600; color: var(--text-color); }
+    .prev-val { font-size: 12px; color: var(--hint-color); background: rgba(142, 142, 147, 0.1); padding: 4px 8px; border-radius: 6px; }
+
+    .input-wrapper { position: relative; display: flex; align-items: baseline; }
+    input {
+      width: 100%; border: none; background: transparent;
+      font-size: 28px; font-weight: 700; color: var(--accent-color);
+      padding: 4px 0; outline: none; font-family: 'Inter', sans-serif;
+    }
+    input::placeholder { color: var(--hint-color); opacity: 0.3; }
+    .unit { font-size: 16px; color: var(--hint-color); font-weight: 500; margin-left: 4px; position: absolute; right: 0; bottom: 10px; pointer-events: none; }
+
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--bg-color); padding: 16px 20px 30px 20px;
+      backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); z-index: 100;
+    }
+
+    .main-btn {
+      width: 100%; background-color: var(--accent-color); color: var(--button-text);
+      border: none; border-radius: 14px; padding: 16px; font-size: 17px; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    }
+    .main-btn:disabled { opacity: 0.6; }
+
+    .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; color: var(--hint-color); }
+    .spinner { width: 40px; height: 40px; border: 4px solid rgba(0,0,0,0.1); border-left-color: var(--accent-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="tg-theme">
+
+  <div id="loader" class="loader-container">
+    <div class="spinner"></div>
+    <div>Завантаження...</div>
+  </div>
+
+  <div id="mainForm" style="display:none;" class="fade-in">
+    <header>
+      <h1 id="headerName">Мої заміри</h1>
+      <p class="subtitle">Внеси актуальні дані на сьогодні</p>
+    </header>
+    <div class="grid" id="fieldsContainer"></div>
+  </div>
+
+  <div class="bottom-bar" id="bottomBar" style="display:none;">
+    <button class="main-btn" onclick="submitData()">Зберегти результат</button>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    document.body.classList.add('tg-theme');
+    tg.setHeaderColor(getComputedStyle(document.body).getPropertyValue('--bg-color').trim());
+    tg.setBackgroundColor(getComputedStyle(document.body).getPropertyValue('--bg-color').trim());
+
+    // 🔥 ГОЛОВНЕ ВИПРАВЛЕННЯ:
+    // Ми беремо ID прямо з шаблону сервера. Це працює залізно.
+    // Якщо скрипт передав "UNKNOWN" (не зміг знайти), пробуємо взяти з Telegram initData.
+    
+    let currentUserId = "<?= uid ?>"; 
+    let currentUserName = "User";
+
+    // Страховка: якщо сервер чомусь не передав ID, беремо з Telegram
+    if (currentUserId === "UNKNOWN" || !currentUserId) {
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            currentUserId = String(tg.initDataUnsafe.user.id);
+        }
+    }
+
+    // Якщо все ще немає ID - пробуємо URL (але це рідко працює в iframe)
+    if (currentUserId === "UNKNOWN" || !currentUserId) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const uidParam = urlParams.get('uid');
+        if (uidParam) currentUserId = uidParam;
+    }
+
+    console.log("Detected User ID:", currentUserId);
+
+    window.onload = function() {
+      google.script.run
+        .withSuccessHandler(buildForm)
+        .getBodyStatsConfigForUser(currentUserId);
+    };
+
+    function buildForm(config) {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('mainForm').style.display = 'block';
+      document.getElementById('bottomBar').style.display = 'block';
+      
+      if(config.clientName) {
+         currentUserName = config.clientName;
+         document.getElementById('headerName').innerText = config.clientName;
+      }
+
+      const container = document.getElementById('fieldsContainer');
+      let html = '';
+
+      config.fields.forEach(f => {
+        let prevText = f.prevValue ? `Раніше: ${f.prevValue}` : "Новий запис";
+        let unit = "";
+        let lowerLabel = f.label.toLowerCase();
+        if(lowerLabel.includes("вага")) unit = "кг";
+        else if(lowerLabel.includes("см") || lowerLabel.includes("талія") || lowerLabel.includes("стегна") || lowerLabel.includes("груди")) unit = "см";
+        
+        let cleanLabel = f.label.replace(/\(.*\)/, "").trim();
+
+        html += `
+          <div class="input-card">
+            <div class="card-header">
+              <span class="label">${cleanLabel}</span>
+              <span class="prev-val">${prevText}</span>
+            </div>
+            <div class="input-wrapper">
+              <input type="number" step="0.1" inputmode="decimal" id="field_${f.index}" placeholder="0">
+              <span class="unit">${unit}</span>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function submitData() {
+      const btn = document.querySelector('.main-btn');
+      if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+      btn.disabled = true;
+      btn.innerText = "Зберігаю...";
+
+      const inputs = document.querySelectorAll('input');
+      let values = {};
+      let hasData = false;
+
+      inputs.forEach(inp => {
+        if(inp.value && inp.value !== "") {
+          let colIndex = inp.id.split('_')[1];
+          values[colIndex] = inp.value;
+          hasData = true;
+        }
+      });
+
+      if (!hasData) {
+        tg.showAlert("Введіть хоча б одне значення!");
+        btn.disabled = false;
+        btn.innerText = "Зберегти результат";
+        return;
+      }
+
+      const payload = {
+        userId: currentUserId,
+        userName: currentUserName,
+        values: values
+      };
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          if(res.status === 'success') {
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            document.body.innerHTML = `
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:90vh; text-align:center;">
+                <div style="font-size:60px; margin-bottom:20px;">✅</div>
+                <h2 style="margin:0;">Готово!</h2>
+                <p style="color:var(--hint-color);">Дані успішно збережено.</p>
+              </div>
+            `;
+            setTimeout(() => { tg.close(); }, 1500);
+          } else {
+            tg.showAlert("Помилка: " + res.msg);
+            btn.disabled = false;
+            btn.innerText = "Зберегти результат";
+          }
+        })
+        .saveBodyStats(payload);
+    }
+  </script>
+</body>
+</html>

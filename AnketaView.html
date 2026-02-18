@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Inter', sans-serif; padding: 10px; background: #f5f5f5; margin: 0; }
+      .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid #4F46E5; }
+      .main-header { font-size: 16px; font-weight: 700; color: #4F46E5; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+      .qa-item { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f9f9f9; }
+      .qa-item:last-child { border-bottom: none; }
+      .question { font-size: 10px; text-transform: uppercase; color: #999; font-weight: 700; margin-bottom: 3px; }
+      .answer { font-size: 14px; color: #111; line-height: 1.4; font-weight: 500; }
+      .highlight { background: #FFF9C4; padding: 2px 6px; border-radius: 4px; color: #92400E; font-weight: 600; }
+      #loader { text-align: center; margin-top: 50px; }
+      .spinner { width: 30px; height: 30px; border: 3px solid #eee; border-top-color: #4F46E5; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .hidden { display: none; }
+      #error-box { color: #DC2626; background: #FEF2F2; padding: 15px; border-radius: 8px; font-size: 13px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div id="loader"><div class="spinner"></div><div style="margin-top:10px; color:#999; font-size:12px;">Завантаження...</div></div>
+    <div id="error-box" class="hidden"></div>
+    <div id="content" class="hidden">
+      <div class="card">
+        <div class="main-header">📋 АНКЕТА: <span id="clientName"></span></div>
+        <div id="answersContainer"></div>
+      </div>
+    </div>
+
+    <script>
+      // Виклик серверної функції
+      google.script.run
+        .withSuccessHandler(renderData)
+        .withFailureHandler(function(e) { showError(e.message); })
+        .getClientAnketaDirect();
+
+      function renderData(res) {
+        document.getElementById('loader').classList.add('hidden');
+        if (res.status === 'success') {
+          document.getElementById('content').classList.remove('hidden');
+          document.getElementById('clientName').innerText = res.data.name;
+          
+          let container = document.getElementById('answersContainer');
+          let html = '';
+          
+          // Проходимо по ВСІХ питаннях, які прийшли з таблиці
+          res.data.answers.forEach(item => {
+            // ФІКС: Примусово перетворюємо значення на рядок String(), щоб не було помилки toLowerCase
+            let qText = String(item.question || "");
+            let aText = String(item.answer || "—");
+            
+            let lowerQ = qText.toLowerCase();
+            let lowerA = aText.toLowerCase();
+            
+            let aClass = 'answer';
+            // Логіка підсвічування травм/здоров'я
+            if ((lowerQ.includes("здоров") || lowerQ.includes("травм")) && 
+                aText.length > 2 && lowerA !== "ні" && lowerA !== "немає" && lowerA !== "—") {
+              aClass = 'answer highlight';
+            }
+            
+            html += `<div class="qa-item">
+              <div class="question">${qText}</div>
+              <div class="${aClass}">${aText}</div>
+            </div>`;
+          });
+          container.innerHTML = html;
+        } else {
+          showError(res.msg);
+        }
+      }
+
+      function showError(msg) {
+        document.getElementById('loader').classList.add('hidden');
+        let box = document.getElementById('error-box');
+        box.classList.remove('hidden');
+        box.innerHTML = "⚠️ " + msg;
+      }
+    </script>
+  </body>
+</html>

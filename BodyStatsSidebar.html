@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    :root {
+      --primary-blue: #4285F4;
+      --bg-light: #F1F3F4;
+      --card-bg: #FFFFFF;
+      --text-main: #3C4043;
+      --text-secondary: #70757A;
+      --border: #E8EAED;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-light);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+
+    /* 🔥 ОНОВЛЕНИЙ ЗАГОЛОВОК */
+    .header { text-align: center; margin-bottom: 16px; }
+    .page-title { font-size: 18px; font-weight: 800; color: #444746; }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(60,64,67,0.1), 0 2px 6px rgba(60,64,67,0.1);
+      margin-bottom: 16px;
+    }
+
+    #chart_div { width: 100%; height: 220px; }
+
+    .history-label { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 12px; }
+    
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 400px;
+    }
+
+    th {
+      background: #F8F9FA;
+      padding: 12px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 14px 10px;
+      font-size: 14px;
+      color: var(--text-main);
+      border-bottom: 1px solid #F1F3F4;
+      white-space: nowrap;
+    }
+
+    .date-col { font-weight: 700; color: #202124; }
+    .unit { font-size: 10px; font-weight: 600; color: #9AA0A6; margin-left: 3px; }
+
+    #loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+    .spinner { width: 30px; height: 30px; border: 3px solid #ddd; border-left-color: var(--primary-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div id="loader">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="mainUI" style="display:none;">
+    <div class="header">
+      <div class="page-title">Зміни ваги тіла</div>
+    </div>
+
+    <div class="card">
+      <div id="chart_div"></div>
+    </div>
+
+    <div class="card" style="padding: 16px 0;">
+      <div class="history-label" style="padding-left: 16px;">Історія змін</div>
+      <div class="table-container">
+        <table id="statsTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    google.charts.load('current', {'packages':['corechart']});
+
+    window.onload = function() {
+      google.script.run.withSuccessHandler(render).getClientBodyStatsData();
+    };
+
+    function render(data) {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('mainUI').style.display = 'block';
+
+      google.charts.setOnLoadCallback(function() {
+        var chartData = new google.visualization.DataTable();
+        chartData.addColumn('string', 'Дата');
+        chartData.addColumn('number', 'Вага');
+        
+        data.stats.forEach(row => {
+          chartData.addRow([row["Дата"], parseFloat(row["Вага (кг)"]) || 0]);
+        });
+
+        var options = {
+          fontName: 'Inter',
+          backgroundColor: 'transparent',
+          areaOpacity: 0.1,
+          colors: ['#4285F4'],
+          chartArea: { width: '100%', height: '80%', left: 40, right: 10, top: 10 },
+          legend: { position: 'none' },
+          hAxis: { textStyle: { color: '#BDC1C6', fontSize: 10 }, gridlines: { color: 'transparent' } },
+          vAxis: { textStyle: { color: '#BDC1C6', fontSize: 10 }, gridlines: { color: '#F1F3F4' }, baselineColor: '#F1F3F4' },
+          curveType: 'function',
+          pointsVisible: true,
+          pointSize: 10
+        };
+
+        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+        chart.draw(chartData, options);
+      });
+
+      const head = document.getElementById('tableHead');
+      const body = document.getElementById('tableBody');
+
+      head.innerHTML = `<tr><th>Дата</th>${data.headers.map(h => `<th>${h.split(' ')[0]}</th>`).join('')}</tr>`;
+
+      let html = '';
+      [...data.stats].reverse().forEach(row => {
+        html += `<tr><td class="date-col">${row["Дата"]}</td>`;
+        data.headers.forEach(h => {
+          let val = row[h] || "-";
+          let unit = (val !== "-") ? (h.toLowerCase().includes("вага") ? "кг" : "см") : "";
+          html += `<td>${val}<span class="unit">${unit}</span></td>`;
+        });
+        html += '</tr>';
+      });
+      body.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

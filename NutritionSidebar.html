@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --primary-blue: #2962ff;
+        --bg-color: #f5f7fa;
+        --text-dark: #2c3e50;
+        --text-grey: #95a5a6;
+        --card-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        
+        --macro-p: #ff3d00;
+        --macro-f: #ffb300;
+        --macro-c: #00b0ff;
+        --macro-fb: #00c853;
+      }
+
+      body { 
+        font-family: 'Inter', sans-serif; 
+        background: var(--bg-color);
+        margin: 0; 
+        padding: 12px; 
+        color: var(--text-dark);
+        padding-bottom: 20px;
+      }
+      
+      /* Перемикач ТИЖДЕНЬ / МІСЯЦЬ */
+      .toggle-container {
+        background: #e0e0e0;
+        border-radius: 10px;
+        padding: 4px;
+        display: flex;
+        margin-bottom: 15px;
+      }
+      .toggle-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px 0;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #7f8c8d;
+      }
+      .toggle-btn.active {
+        background: white;
+        color: var(--primary-blue);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+
+      .chart-card {
+        background: white; border-radius: 16px; padding: 15px 10px;
+        box-shadow: var(--card-shadow); margin-bottom: 20px;
+      }
+
+      /* Середні показники */
+      .avg-card {
+        background: #fff;
+        border-left: 5px solid var(--primary-blue);
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 25px;
+        box-shadow: var(--card-shadow);
+      }
+      .avg-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text-dark); }
+      
+      .avg-grid { display: flex; justify-content: space-between; align-items: flex-end; }
+      .avg-main { text-align: left; }
+      .avg-kcal { font-size: 24px; font-weight: 800; color: var(--primary-blue); line-height: 1; }
+      .avg-sub { font-size: 10px; color: var(--text-grey); margin-top: 3px; }
+
+      .avg-macros { display: flex; gap: 15px; }
+      .a-item { display: flex; flex-direction: column; align-items: center; }
+      .a-val { font-weight: 700; font-size: 14px; }
+      .a-lbl { font-size: 9px; color: var(--text-grey); font-weight: 600; }
+
+      /* Список днів */
+      .day-card { 
+        background: white; border-radius: 14px; padding: 12px 15px;
+        margin-bottom: 10px; box-shadow: var(--card-shadow);
+        display: flex; justify-content: space-between; align-items: center;
+      }
+      .day-left { display: flex; flex-direction: column; min-width: 40px;}
+      .day-label-big { font-size: 16px; font-weight: 700; color: var(--text-dark); }
+      .day-date-small { font-size: 10px; color: var(--text-grey); }
+
+      .macros-center { display: flex; gap: 10px; }
+      .macro-box { display: flex; flex-direction: column; align-items: center; }
+      .m-val { font-weight: 700; font-size: 12px; }
+      .m-label { font-size: 8px; color: var(--text-grey); font-weight: 600; }
+
+      .kcal-right { text-align: right; min-width: 60px; }
+      .kcal-big-num { font-size: 18px; font-weight: 800; color: var(--primary-blue); }
+      .kcal-unit { font-size: 9px; color: var(--text-grey); }
+
+      /* Кольори */
+      .col-p { color: var(--macro-p); }
+      .col-f { color: var(--macro-f); }
+      .col-c { color: var(--macro-c); }
+
+      .loader { text-align: center; margin-top: 60px; color: var(--text-grey); }
+    </style>
+  </head>
+  <body>
+
+    <div id="loader">🔄 Завантаження...</div>
+
+    <div id="content" style="display:none;">
+      
+      <div style="text-align:center; margin-bottom:15px;">
+        <h3 id="clientName" style="margin:0; font-size:16px;">Клієнт</h3>
+      </div>
+
+      <div class="toggle-container">
+        <div id="btnWeek" class="toggle-btn active" onclick="switchView('week')">Тиждень</div>
+        <div id="btnMonth" class="toggle-btn" onclick="switchView('month')">Місяць</div>
+      </div>
+
+      <div class="chart-card">
+        <canvas id="myChart" height="180"></canvas>
+      </div>
+
+      <div id="daysList"></div>
+
+      <div class="avg-card">
+        <div class="avg-title">Середнє за день (з заповнених):</div>
+        <div class="avg-grid">
+          <div class="avg-main">
+            <div class="avg-kcal" id="avgKcal">0</div>
+            <div class="avg-sub">ккал / день</div>
+          </div>
+          <div class="avg-macros">
+            <div class="a-item"><span class="a-val col-p" id="avgP">0</span><span class="a-lbl">БІЛ</span></div>
+            <div class="a-item"><span class="a-val col-f" id="avgF">0</span><span class="a-lbl">ЖИР</span></div>
+            <div class="a-item"><span class="a-val col-c" id="avgC">0</span><span class="a-lbl">ВУГ</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      let chartInstance = null;
+      let currentView = 'week';
+
+      // Завантаження при старті
+      loadData('week');
+
+      function switchView(mode) {
+        if(currentView === mode) return;
+        currentView = mode;
+        
+        // UI Toggle
+        document.getElementById('btnWeek').classList.toggle('active', mode === 'week');
+        document.getElementById('btnMonth').classList.toggle('active', mode === 'month');
+        
+        loadData(mode);
+      }
+
+      function loadData(mode) {
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('content').style.opacity = '0.5'; // Ефект "завантаження"
+
+        google.script.run
+          .withSuccessHandler(render)
+          .getNutritionDataForSidebar(mode);
+      }
+
+      function render(res) {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('content').style.opacity = '1';
+
+        if (res.error) {
+          alert(res.error);
+          return;
+        }
+
+        document.getElementById('content').style.display = 'block';
+        document.getElementById('clientName').innerText = res.client;
+
+        // --- 1. Оновлення Графіка ---
+        updateChart(res.data);
+
+        // --- 2. Оновлення Списку днів ---
+        renderDayList(res.data);
+
+        // --- 3. Оновлення Середніх показників ---
+        document.getElementById('avgKcal').innerText = res.averages.kcal;
+        document.getElementById('avgP').innerText = res.averages.p;
+        document.getElementById('avgF').innerText = res.averages.f;
+        document.getElementById('avgC').innerText = res.averages.c;
+      }
+
+      function updateChart(data) {
+        const ctx = document.getElementById('myChart').getContext('2d');
+        let gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(41, 98, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(41, 98, 255, 0.0)');
+
+        // Якщо графік вже є - знищуємо, щоб перемалювати
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.map(d => d.label),
+            datasets: [{
+              label: 'Ккал',
+              data: data.map(d => d.kcal),
+              borderColor: '#2962ff',
+              backgroundColor: gradient,
+              borderWidth: 2,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: '#2962ff',
+              pointRadius: (data.length > 10) ? 2 : 5, // Менші точки для місяця
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: '#f0f2f5' }, ticks: { display: false } }, // Приховав цифри Y для чистоти
+              x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } }
+            }
+          }
+        });
+      }
+
+      function renderDayList(data) {
+        let html = '';
+        // Для місяця показуємо список у зворотному порядку (свіжі зверху)? 
+        // Або як є. Зазвичай зручно бачити хронологію.
+        
+        data.forEach(d => {
+          let opacity = (d.kcal === 0) ? 'opacity:0.4' : '';
+          let val = (d.kcal > 0) ? d.kcal : "—";
+
+          html += `
+            <div class="day-card" style="${opacity}">
+              <div class="day-left">
+                <span class="day-label-big">${d.label}</span>
+                <span class="day-date-small">${d.date}</span>
+              </div>
+              <div class="macros-center">
+                <div class="macro-box"><span class="m-val col-p">${d.p}</span><span class="m-label">Б</span></div>
+                <div class="macro-box"><span class="m-val col-f">${d.f}</span><span class="m-label">Ж</span></div>
+                <div class="macro-box"><span class="m-val col-c">${d.c}</span><span class="m-label">В</span></div>
+              </div>
+              <div class="kcal-right">
+                <div class="kcal-big-num">${val}</div>
+                <div class="kcal-unit">ккал</div>
+              </div>
+            </div>
+          `;
+        });
+        document.getElementById('daysList').innerHTML = html;
+      }
+    </script>
+  </body>
+</html>
